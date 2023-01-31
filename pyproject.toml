@@ -10,6 +10,13 @@ packages = [{include = "dl_utils"}]
 python = "^3.10"
 
 
+[tool.poetry.group.dev.dependencies]
+isort = "^5.12.0"
+black = "^22.12.0"
+pytest = "^7.2.1"
+flake8 = "^6.0.0"
+pre-commit = "^3.0.2"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
