@@ -1,8 +1,12 @@
 import re
+import time
 from functools import partial
 
 import matplotlib as plt
+import torch
 from fastprogress.fastprogress import format_time, master_bar, progress_bar
+
+from .utils import listify
 
 
 class Callback:
@@ -135,3 +139,76 @@ class Recorder(Callback):
         n = len(losses) - skip_last
         plt.xscale("log")
         plt.plot(lrs[:n], losses[:n])
+
+
+class AvgStats:
+    def __init__(self, metrics, training=True):
+        self.metrics = listify(metrics)
+        self.training = training
+
+    def reset(self):
+        self.tot_loss = 0
+        self.count = 0
+        self.tot_metrics = [0.0] * len(self.metrics)
+
+    @property
+    def all_stats(self):
+        """Returns a list of both loss and metrics."""
+        return [self.tot_loss.item()] + self.tot_metrics
+
+    @property
+    def avg_stats(self):
+        """Returns the average of loss/metrics."""
+        return [o / self.count for o in self.all_stats]
+
+    def __repr__(self):
+        if not self.count:
+            return ""
+        return f"{'train' if self.training else 'valid'}: {self.avg_stats}"
+
+    def accumulate(self, learner):
+        """Evaluate metrics and accumulate them to at the epoch level."""
+        bs = learner.xb.shape[0]
+        self.count += bs
+        self.tot_loss += learner.loss * bs
+        for i, metric in enumerate(self.metrics):
+            self.tot_metrics[i] += metric(learner.pred, learner.yb) * bs
+
+
+class AvgStatsCallback(Callback):
+    _order = -10
+
+    def __init__(self, metrics):
+        self.train_stats = AvgStats(metrics, True)
+        self.valid_stats = AvgStats(metrics, False)
+
+    def before_fit(self):
+        metrics_names = ["loss"] + [
+            metric.__name__ for metric in self.train_stats.metrics
+        ]
+        names = (
+            ["epoch"]
+            + [f"train_{name}" for name in metrics_names]
+            + [f"valid_{name}" for name in metrics_names]
+            + ["time"]
+        )
+        self.logger(names)
+
+    def before_epoch(self):
+        """Reset metrics/loss."""
+        self.train_stats.reset()
+        self.valid_stats.reset()
+        self.start_time = time.time()
+
+    def after_loss(self):
+        """Evaluate metrics and accumulate them."""
+        stats = self.train_stats if self.training else self.valid_stats
+        with torch.no_grad():
+            stats.accumulate(self.learner)
+
+    def after_epoch(self):
+        stats = [str(self.epoch)]
+        for o in [self.train_stats, self.valid_stats]:
+            stats += [f"{v:.6f}" for v in o.avg_stats]
+        stats += [format_time(time.time() - self.start_time)]
+        self.logger(stats)
