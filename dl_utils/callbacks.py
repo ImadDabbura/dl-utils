@@ -27,9 +27,8 @@ class Callback:
 
     def __call__(self, cb_name):
         f = getattr(self, cb_name, None)
-        if f and f():
-            return True
-        return False
+        if f is not None:
+            f()
 
     @staticmethod
     def camel2snake(name):
