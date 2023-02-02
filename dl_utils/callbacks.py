@@ -37,3 +37,33 @@ class Callback:
         pattern2 = re.compile("([a-z0-9])([A-Z])")
         name = re.sub(pattern1, r"\1_\2", name)
         return re.sub(pattern2, r"\1_\2", name).lower()
+
+
+class TrainEvalCallback(Callback):
+    """
+    Tracks the number of iterations and epoch done and set training and eval
+    modes.
+    """
+
+    _order = -10
+
+    def before_fit(self):
+        self.learner.n_iters = 0
+        self.learner.pct_train = 0
+
+    def after_batch(self):
+        if self.learner.training:
+            self.learner.n_iters += 1
+            # Assuming here that all batches are of the same size
+            # Otherwise, self.iters * self.n_epochs would be smaller
+            # for the last batch
+            self.learner.pct_train += 1 / (self.iters * self.n_epochs)
+
+    def before_train(self):
+        self.model.train()
+        self.learner.training = True
+        self.learner.pct_train = self.epoch / self.n_epochs
+
+    def before_validate(self):
+        self.model.eval()
+        self.learner.training = False
