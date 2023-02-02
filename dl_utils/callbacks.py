@@ -212,3 +212,15 @@ class AvgStatsCallback(Callback):
             stats += [f"{v:.6f}" for v in o.avg_stats]
         stats += [format_time(time.time() - self.start_time)]
         self.logger(stats)
+
+
+class CudaCallback(Callback):
+    def __init__(self, device):
+        self.device = device
+
+    def before_fit(self):
+        self.learner.model.to(self.device)
+
+    def before_batch(self):
+        self.learner.xb = self.learner.xb.to(self.device)
+        self.learner.yb = self.learner.yb.to(self.device)
