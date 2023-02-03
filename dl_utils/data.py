@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import numpy as np
+import torch
 from torch.utils.data import DataLoader, Dataset
 
 from .utils import listify, setify
@@ -209,4 +210,73 @@ class SplitData:
         return (
             f"{self.__class__.__name__}\n---------\nTrain - {self.train}\n\n"
             f"Valid - {self.valid}\n"
+        )
+
+
+def parent_labeler(f_name: Path):
+    """Label a file based on its parent directory."""
+    return f_name.parent.name
+
+
+def label_by_func(splitted_data, label_func, proc_x=None, proc_y=None):
+    """Label splitted data using `label_func`."""
+    train = LabeledData.label_by_func(
+        splitted_data.train, label_func, proc_x=proc_x, proc_y=proc_y
+    )
+    valid = LabeledData.label_by_func(
+        splitted_data.valid, label_func, proc_x=proc_x, proc_y=proc_y
+    )
+    return SplitData(train, valid)
+
+
+class LabeledData:
+    """
+    Create a labeled data and expose both x & y as item lists after passing
+    them through all processors.
+    """
+
+    def __init__(self, x, y, proc_x=None, proc_y=None):
+        self.x = self.process(x, proc_x)
+        self.y = self.process(y, proc_y)
+        self.proc_x = proc_x
+        self.proc_y = proc_y
+
+    def process(self, item_list, proc):
+        return item_list.new(compose(item_list.items, proc))
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}\nx: {self.x}\ny: {self.y}\n"
+
+    def __getitem__(self, idx):
+        return self.x[idx], self.y[idx]
+
+    def __len__(self):
+        return len(self.x)
+
+    def x_obj(self, idx):
+        return self.obj(self.x, idx, self.proc_x)
+
+    def y_obj(self, idx):
+        return self.obj(self.y, idx, self.proc_y)
+
+    def obj(self, items, idx, procs):
+        isint = isinstance(idx, int) or (
+            isinstance(idx, torch.LongTensor) and not idx.ndim
+        )
+        item = items[idx]
+        for proc in reversed(listify(procs)):
+            item = proc._deprocess(item) if isint else proc.deprocess(item)
+        return item
+
+    @staticmethod
+    def _label_by_func(ds, label_func, cls=ItemList):
+        return cls([label_func(o) for o in ds.items], path=ds.path)
+
+    @classmethod
+    def label_by_func(cls, item_list, label_func, proc_x=None, proc_y=None):
+        return cls(
+            item_list,
+            LabeledData._label_by_func(item_list, label_func),
+            proc_x=proc_x,
+            proc_y=proc_y,
         )
