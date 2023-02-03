@@ -8,6 +8,9 @@ packages = [{include = "dl_utils"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
+fastprogress = "^1.0.3"
+torch = "^1.13.1"
+matplotlib = "^3.6.3"
 
 
 [tool.poetry.group.dev.dependencies]
