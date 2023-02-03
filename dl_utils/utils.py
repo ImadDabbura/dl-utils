@@ -26,3 +26,10 @@ def setify(obj):
     if isinstance(obj, set):
         return obj
     return set(listify(obj))
+
+
+def uniqueify(x, sort=False):
+    res = listify(setify(x))
+    if sort:
+        res.sort()
+    return res
