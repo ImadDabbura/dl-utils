@@ -249,3 +249,15 @@ class ParamScheduler(Callback):
     def before_batch(self):
         if self.training:
             self.set_param()
+
+
+class BatchTransformXCallback(Callback):
+    """Transform X as a batch before every batch."""
+
+    _order = 2
+
+    def __init__(self, tfm):
+        self.tfm = tfm
+
+    def before_batch(self):
+        self.learner.xb = self.tfm(self.learner.xb)
