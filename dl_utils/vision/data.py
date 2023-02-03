@@ -15,15 +15,15 @@ class ImageList(ItemList):
         cls,
         path,
         extensions=IMAGE_EXTENSIONS,
-        recurse=True,
         include=None,
+        recurse=True,
         **kwargs
     ):
         """
         Build an image list from list of files in the `path` end with
         extensions, optionally recursively.
         """
-        return cls(get_files(path, extensions, recurse, include), **kwargs)
+        return cls(get_files(path, extensions, include, recurse), **kwargs)
 
     def get(self, item):
         """Open an image using PIL."""

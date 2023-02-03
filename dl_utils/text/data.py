@@ -11,14 +11,14 @@ def read_file(fn):
 class TextList(ItemList):
     @classmethod
     def from_files(
-        cls, path, extensions=".txt", recurse=True, include=None, **kwargs
+        cls, path, extensions=".txt", include=None, recurse=True, **kwargs
     ):
         """
         Build an text list from list of files in the `path` end with
         extensions, optionally recursively.
         """
         return cls(
-            get_files(path, extensions, recurse, include), path, **kwargs
+            get_files(path, extensions, include, recurse), path, **kwargs
         )
 
     def get(self, i):
