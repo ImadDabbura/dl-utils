@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import numpy as np
 from torch.utils.data import DataLoader, Dataset
 
 from .utils import listify, setify
@@ -147,3 +148,65 @@ def get_files(path, extensions=None, include=None, recurse=False):
     else:
         fs = [o.name for o in os.scandir(path) if o.is_file()]
         return _get_files(path, fs, extensions)
+
+
+def random_splitter(f_name: str, p_valid: float = 0.2):
+    return np.random.random() < p_valid
+
+
+def grandparent_splitter(
+    f_name: Path, valid_name: str = "valid", train_name: str = "train"
+):
+    """
+    Split items based on whether they fall under validation or training
+    direcotories. This assumes that the directory structure is
+    train/label/items or valid/label/items.
+    """
+    gp = f_name.parent.parent.name
+    if gp == valid_name:
+        return True
+    elif gp == train_name:
+        return False
+    return
+
+
+def split_by_func(items, func):
+    mask = [func(o) for o in items]
+    # `None` values will be filtered out
+    val = [o for o, m in zip(items, mask) if m]
+    train = [o for o, m in zip(items, mask) if m is False]
+    return train, val
+
+
+class SplitData:
+    """Split Item list into train and validation data lists."""
+
+    def __init__(self, train, valid):
+        self.train = train
+        self.valid = valid
+
+    def __getattr__(self, k):
+        return getattr(self.train, k)
+
+    # This is needed if we want to pickle SplitData objects and be able to load
+    # it back without recursion errors
+    def __setstate__(self, data):
+        self.__dict__.update(data)
+
+    @classmethod
+    def split_by_func(cls, item_list, split_func):
+        """Split item list by splitter function and returns a SplitData object."""
+        train_files, val_files = split_by_func(item_list.items, split_func)
+        train_list, val_list = map(item_list.new, (train_files, val_files))
+        return cls(train_list, val_list)
+
+    def to_databunch(self, bs, c_in, c_out, **kwargs):
+        """Returns a DataBunch object using train and valid datasets."""
+        dls = get_dls(self.train, self.valid, bs, **kwargs)
+        return DataBunch(*dls, c_in=c_in, c_out=c_out)
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}\n---------\nTrain - {self.train}\n\n"
+            f"Valid - {self.valid}\n"
+        )
