@@ -82,3 +82,34 @@ class L:
         if len(self) > 10:
             res = res[:-1] + ", ...]"
         return res
+
+
+class ItemList(L):
+    """Base class for all type of datasets such as image, text, etc."""
+
+    def __init__(self, items, path=".", tfms=None):
+        super().__init__(items)
+        self.path = path
+        self.tfms = tfms
+
+    def __repr__(self):
+        return super().__repr__() + f"\nPath: {self.path}"
+
+    def new(self, items, cls=None):
+        if cls is None:
+            cls = self.__class__
+        return cls(items, self.path, self.tfms)
+
+    def get(self, item):
+        """Every class that inherits from ItemList has to override this method."""
+        return item
+
+    def _get(self, item):
+        """Returns items after applying all transforms `tfms`."""
+        return compose(self.get(item), self.tfms)
+
+    def __getitem__(self, idx):
+        items = super().__getitem__(idx)
+        if isinstance(idx, list):
+            return [self._get(item) for item in items]
+        return self._get(items)
