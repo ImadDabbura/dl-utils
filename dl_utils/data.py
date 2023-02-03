@@ -113,3 +113,37 @@ class ItemList(L):
         if isinstance(idx, list):
             return [self._get(item) for item in items]
         return self._get(items)
+
+
+def _get_files(path, fs, extensions=None):
+    """Get filenames in `path` that have extension `extensions`."""
+    path = Path(path)
+    res = [
+        path / f
+        for f in fs
+        if not f.startswith(".")
+        and ((not extensions) or f'.{f.split(".")[-1].lower()}' in extensions)
+    ]
+    return res
+
+
+def get_files(path, extensions=None, include=None, recurse=False):
+    """
+    Get filenames in `path` that have extension `extensions` starting
+    with `path` and optionally recurse to subdirectories.
+    """
+    path = Path(path)
+    extensions = setify(extensions)
+    extensions = {e.lower() for e in extensions}
+    if recurse:
+        res = []
+        for i, (p, d, fs) in enumerate(os.walk(path)):
+            if include is not None and i == 0:
+                d[:] = [o for o in d if o in include]
+            else:
+                d[:] = [o for o in d if not o.startswith(".")]
+            res += _get_files(p, fs, extensions)
+        return res
+    else:
+        fs = [o.name for o in os.scandir(path) if o.is_file()]
+        return _get_files(path, fs, extensions)
