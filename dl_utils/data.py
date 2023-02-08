@@ -50,7 +50,7 @@ class DataBunch:
 
     @property
     def valid_ds(self):
-        return self.valid.dataset
+        return self.valid_dl.dataset
 
 
 class L:
