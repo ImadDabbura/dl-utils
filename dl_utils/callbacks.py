@@ -9,6 +9,26 @@ from fastprogress.fastprogress import format_time, master_bar, progress_bar
 from .utils import listify
 
 
+class CancelFitException(Exception):
+    """Stop training and exit"""
+
+
+class CancelEpochException(Exception):
+    """Stop current epoch and move to next epoch."""
+
+
+class CancelTrainException(Exception):
+    """Stop training current batch and move to validation."""
+
+
+class CancelValidException(Exception):
+    """Stop validation phase and move to next epoch"""
+
+
+class CancelBatchException(Exception):
+    """Stop current batch and move to next batch."""
+
+
 class Callback:
     """Base class for all callbacks."""
 
