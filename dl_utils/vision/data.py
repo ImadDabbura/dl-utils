@@ -1,6 +1,6 @@
 import mimetypes
 
-import PIL
+from PIL import Image
 
 from ..data import ItemList, get_files
 
@@ -27,4 +27,4 @@ class ImageList(ItemList):
 
     def get(self, item):
         """Open an image using PIL."""
-        return PIL.Image.open(item)
+        return Image.open(item)
