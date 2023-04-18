@@ -1,3 +1,7 @@
+# ⛔️ DEPRECATED
+
+Most of the logic can be found in the new [repo](https://github.com/ImadDabbura/cmn_ai). It includes almost everything dl-utils has plus much more.
+
 # DL Utilities
 
 ## Introduction
